@@ -1,0 +1,15 @@
+{
+  "name": "trace",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Register a work as your own, and let a challenge check it against an earlier source, on GenLayer.",
+  "scripts": {
+    "deploy": "node scripts/deploy.mjs",
+    "prove": "node scripts/prove.mjs"
+  },
+  "dependencies": {
+    "ethers": "^6",
+    "genlayer-js": "1.1.8"
+  }
+}

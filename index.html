@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trace — originality, answerable to a challenge</title>
+<style>
+  :root{ --bg:#080d0f; --card:#101819; --line:#20302f; --ink:#eaf5f3; --dim:#9bb6b2; --faint:#688079;
+    --accent:#2dd4bf; --grn:#4ade80; --red:#ff6b6b; --amber:#f5b301; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 ui-sans-serif,system-ui,-apple-system,sans-serif}
+  a{color:var(--accent)}
+  .wrap{max-width:940px;margin:0 auto;padding:0 20px 70px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .brand{font-weight:800;font-size:20px}.brand i{color:var(--accent);font-style:normal}
+  .net{font:12px ui-monospace,monospace;color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:5px 10px}
+  button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:#16211f;color:var(--ink);padding:9px 14px}
+  button.primary{background:var(--accent);color:#04140f;border-color:transparent;font-weight:700}
+  button:disabled{opacity:.5;cursor:default}
+  h1{font-size:27px;margin:26px 0 6px;letter-spacing:-.3px}
+  .lead{color:var(--dim);max-width:710px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:16px 0}
+  label{display:block;font:12px ui-monospace,monospace;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin:12px 0 5px}
+  input{width:100%;background:#0a1211;border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:10px 11px;font:inherit}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+  .muted{color:var(--faint);font-size:13px}
+  .status{margin-top:10px;color:var(--dim);font-size:14px;min-height:18px}
+  h2{font-size:14px;color:var(--dim);font-family:ui-monospace,monospace;letter-spacing:1px;text-transform:uppercase;margin:28px 0 6px}
+  .card{border-top:1px solid var(--line);padding:16px 0}.card:first-child{border-top:0}
+  .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .head{font-weight:700;font-size:17px}
+  .badge{display:inline-block;font:12px ui-monospace,monospace;font-weight:700;padding:3px 9px;border-radius:999px}
+  .b-registered{background:#10262a;color:var(--accent)} .b-cleared{background:#0f2c1c;color:var(--grn)} .b-flagged{background:#331319;color:var(--red)}
+  .meta{color:var(--faint);font-size:12px;font-family:ui-monospace,monospace;margin-top:6px;word-break:break-all}
+  .rec{color:var(--dim)}
+  .why{color:var(--dim);font-size:13px;margin-top:8px;border-left:2px solid var(--line);padding-left:10px}
+  .counts{display:flex;gap:16px;color:var(--dim);font-size:13px;font-family:ui-monospace,monospace;margin-top:4px;flex-wrap:wrap}
+  .chal{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .chal input{flex:1;min-width:220px}
+  footer{color:var(--faint);font-size:13px;border-top:1px solid var(--line);padding-top:18px;margin-top:30px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">Trace<i>.</i> originality, answerable</div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span class="net">GenLayer Asimov</span>
+      <button id="connect">Connect wallet</button>
+    </div>
+  </header>
+
+  <h1>Register a work as your own, and let a challenge check it against an earlier source.</h1>
+  <p class="lead">Claiming a page as your original is cheap and proves nothing. On Trace the claim is answerable:
+    anyone can challenge it by naming an earlier public page it is said to be taken from, and the contract fetches
+    <b>both</b> pages and a round of GenLayer validators decides whether the work is a <b>COPY</b> or
+    <b>INDEPENDENT</b>. The verdict is permanent and it accrues to the registrant, so a record of whose claims held
+    up as original builds up next to the claim.</p>
+
+  <h2>Register a work</h2>
+  <section>
+    <div class="grid">
+      <div><label>Work URL (the page you are claiming)</label><input id="work" placeholder="https://…" /></div>
+      <div><label>Title</label><input id="title" placeholder="A short title for the work" /></div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="make">Register</button>
+      <span class="muted">You are bound as the registrant. It is neither cleared nor flagged until someone challenges it.</span>
+    </div>
+    <div class="status" id="pstatus"></div>
+  </section>
+
+  <h2>The register</h2>
+  <div class="counts" id="counts"></div>
+  <section id="board"><div class="muted">Reading the register from chain…</div></section>
+
+  <footer>
+    Contract: <a id="exp" href="#" target="_blank" rel="noopener">on the Asimov explorer</a> ·
+    <a href="https://github.com/JspIIV/trace" target="_blank" rel="noopener">source</a> ·
+    reads need no wallet; registering and challenging are transactions on GenLayer Asimov.
+  </footer>
+</div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/genlayer-js@1.1.8";
+import { testnetAsimov } from "https://esm.sh/genlayer-js@1.1.8/chains";
+
+const CONTRACT = "0x8bdB1e4Da7dfef1018950295Cb51B406B84bab67";
+const CHAIN_ID_HEX = "0x107d";
+const CHAIN_PARAMS = { chainId: CHAIN_ID_HEX, chainName: "GenLayer Asimov",
+  nativeCurrency:{name:"GEN",symbol:"GEN",decimals:18},
+  rpcUrls:["https://rpc-asimov.genlayer.com"], blockExplorerUrls:["https://explorer-asimov.genlayer.com"] };
+const EXPLORER = "https://explorer-asimov.genlayer.com";
+const ROUND_GAS = 8_000_000n, GAS_CAP = 95_000_000n, WALLET_COMPUTES=["nonce","type","chainId"];
+
+const reader = createClient({ chain: testnetAsimov });
+let account = null;
+const $ = id => document.getElementById(id);
+const short = a => a?`${String(a).slice(0,6)}…${String(a).slice(-4)}`:"";
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const transient = e => /revert|-32005|-32006|-32603|at capacity|gas rate|rate limit|backpressure|fetch failed|timeout|502|503|429/i
+  .test(String(e?.details||e?.shortMessage||e?.message||e));
+$("exp").href = EXPLORER + "/address/" + CONTRACT;
+
+async function read(fn, args=[]) {
+  for (let i=1;i<=4;i++){ try { const raw = await reader.readContract({address:CONTRACT,functionName:fn,args});
+      try{return JSON.parse(raw)}catch{return raw} } catch(e){ if(!transient(e))throw e; await sleep(1500*i); } }
+}
+function walletFriendly(p){ return { ...p, request: async payload=>{
+  if(payload?.method!=="eth_sendTransaction") return p.request(payload);
+  const tx={...(payload.params?.[0]??{})}; for(const k of WALLET_COMPUTES) delete tx[k];
+  if(BigInt(tx.gas??0)<ROUND_GAS) tx.gas="0x"+ROUND_GAS.toString(16);
+  if(BigInt(tx.gas??0)>GAS_CAP) tx.gas="0x"+GAS_CAP.toString(16);
+  try{ return await p.request({method:"eth_sendTransaction",params:[tx]}); }
+  catch(err){ if(err?.code!==-32602||tx.gasPrice===undefined) throw err; const t={...tx}; delete t.gasPrice;
+    return p.request({method:"eth_sendTransaction",params:[t]}); } } }; }
+async function useGenLayer(){ const cur=await window.ethereum.request({method:"eth_chainId"});
+  if(String(cur).toLowerCase()===CHAIN_ID_HEX) return;
+  try{ await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_ID_HEX}]}); }
+  catch(err){ if(err&&(err.code===4902||err.code===-32603)){ await window.ethereum.request({method:"wallet_addEthereumChain",params:[CHAIN_PARAMS]}); return; } throw err; } }
+function client(){ return createClient({ chain: testnetAsimov, account, provider: walletFriendly(window.ethereum) }); }
+async function ensureWallet(){ if(!window.ethereum) throw new Error("No browser wallet found. Reading works without one; registering and challenging need MetaMask on GenLayer Asimov.");
+  if(!account){ const a=await window.ethereum.request({method:"eth_requestAccounts"}); account=a[0]; $("connect").textContent=short(account); } await useGenLayer(); }
+$("connect").onclick=()=>ensureWallet().then(loadBoard).catch(e=>alert(e.message||e));
+
+async function sendWrite(fn, args){
+  const c=client();
+  for(let attempt=1;;attempt++){ try{ return await c.writeContract({address:CONTRACT,functionName:fn,args,value:0n}); }
+    catch(e){ if(!transient(e)||attempt>=6) throw e; await sleep(4000*attempt); } }
+}
+
+/* ---- register ---- */
+$("make").onclick = async () => {
+  try {
+    await ensureWallet();
+    const work=$("work").value.trim(), title=$("title").value.trim();
+    if(!/^https?:\/\//.test(work)){ $("pstatus").textContent="Give an http(s) work URL."; return; }
+    if(!title){ $("pstatus").textContent="Give the work a title."; return; }
+    $("pstatus").textContent="Registering… approve it in your wallet.";
+    await sendWrite("register",[work,title]);
+    $("pstatus").textContent="Registered. Anyone can now challenge it against an earlier source.";
+    $("work").value=""; $("title").value="";
+    await sleep(4000); await loadBoard();
+  } catch(e){ $("pstatus").textContent="Register failed: "+(e?.shortMessage||e?.message||e); }
+};
+
+/* ---- challenge ---- */
+async function challenge(id){
+  const el=$("s-"+id), input=$("p-"+id);
+  const prior=(input?.value||"").trim();
+  if(!/^https?:\/\//.test(prior)){ if(el) el.textContent="Give an http(s) URL for the earlier source."; return; }
+  try{
+    await ensureWallet();
+    if(el) el.textContent="Challenging…";
+    const before=JSON.stringify(await read("get",[String(id)]));
+    await sendWrite("challenge",[String(id),prior]);
+    for(let i=0;i<90;i++){ await sleep(4000);
+      const now=await read("get",[String(id)]);
+      if(el) el.textContent=`Round running… ${(i+1)*4}s`;
+      if(JSON.stringify(now)!==before){ await loadBoard(); return; } }
+    if(el) el.textContent="Still settling; reload in a minute.";
+  }catch(e){ if(el) el.textContent="Challenge failed: "+(e?.shortMessage||e?.message||e); }
+}
+
+/* ---- board ---- */
+function badge(status){
+  const cls = status==="CLEARED"?"b-cleared":status==="FLAGGED"?"b-flagged":"b-registered";
+  return `<span class="badge ${cls}">${esc(status)}</span>`;
+}
+async function loadBoard(){
+  const size = await read("size",[]).catch(()=>null);
+  if(size) $("counts").textContent = `${size.total} works · ${size.cleared} cleared · ${size.flagged} flagged · ${size.registered} open`;
+  const data = await read("page",["0","30"]).catch(()=>null);
+  const items = (data && data.items) || [];
+  if(!items.length){ $("board").innerHTML='<div class="muted">No works registered yet. Register one above.</div>'; return; }
+  const recs = {};
+  for(const w of items){ if(!(w.author in recs)){ try{ recs[w.author]=await read("record",[w.author]); }catch{ recs[w.author]={cleared:0,flagged:0}; } } }
+  $("board").innerHTML = items.map(w=>{
+    const r = recs[w.author]||{cleared:0,flagged:0};
+    const open = w.status==="REGISTERED";
+    return `<div class="card">
+      <div class="row">${badge(w.status)}<span class="head">${esc(w.title)}</span></div>
+      <div class="meta">work: <a href="${esc(w.work_url)}" target="_blank" rel="noopener">${esc(w.work_url)}</a></div>
+      <div class="meta">by ${esc((w.author||"").slice(0,10))}… <span class="rec">(record: ${esc(r.cleared)} cleared / ${esc(r.flagged)} flagged)</span> · #${esc(w.id)}${w.prior_url?` · challenged against <a href="${esc(w.prior_url)}" target="_blank" rel="noopener">the named source</a>`:""}</div>
+      ${w.reason?`<div class="why"><b>${esc(w.status)}</b> — ${esc(w.reason)}${w.quote?`<br><span class="muted">“${esc(w.quote)}”</span>`:""}</div>`:""}
+      ${open?`<div class="chal"><input id="p-${esc(w.id)}" placeholder="Earlier source URL it is said to copy (https://…)" />
+        <button id="b-${esc(w.id)}" data-id="${esc(w.id)}" class="chalbtn primary">Challenge</button></div>
+        <div class="status" id="s-${esc(w.id)}"></div>`:""}
+    </div>`; }).join("");
+  document.querySelectorAll(".chalbtn").forEach(btn=>btn.onclick=()=>challenge(btn.getAttribute("data-id")));
+}
+
+loadBoard();
+</script>
+</body>
+</html>
