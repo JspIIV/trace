@@ -1,0 +1,125 @@
+{
+  "proved_at": "2026-09-21T20:38:13.886Z",
+  "network": "genlayer testnet asimov",
+  "contract": "0x8bdB1e4Da7dfef1018950295Cb51B406B84bab67",
+  "copy": {
+    "id": "0",
+    "author": "0x80519c53f10d731e4ff83a7d9acd69cf98da6258",
+    "registered_at": "2026-09-21T20:25:18+00:00",
+    "title": "The Silent Economics of Aging Bridges",
+    "work_url": "https://raw.githubusercontent.com/JspIIV/trace/master/docs/copy-derivative.txt",
+    "status": "FLAGGED",
+    "challenges": 1,
+    "prior_url": "https://raw.githubusercontent.com/JspIIV/trace/master/docs/original-essay.txt",
+    "challenger": "0x0b57877ec84d96b672cd47d8ea4424283fdb9f6c",
+    "reason": "The text, structure, and nearly all wording are identical, with only minor synonyms substituted (e.g., 'aging' for 'old', 'difficult' for 'hard').",
+    "quote": "Every old bridge is a promise made by people who are mostly gone, paid for a second time by people who never voted on it.",
+    "judged_at": "2026-09-21T20:36:06+00:00"
+  },
+  "independent": {
+    "id": "1",
+    "author": "0x0b57877ec84d96b672cd47d8ea4424283fdb9f6c",
+    "registered_at": "2026-09-21T20:25:33+00:00",
+    "title": "Notes on Harvesting Rainwater in a Small Garden",
+    "work_url": "https://raw.githubusercontent.com/JspIIV/trace/master/docs/independent-note.txt",
+    "status": "CLEARED",
+    "challenges": 1,
+    "prior_url": "https://raw.githubusercontent.com/JspIIV/trace/master/docs/original-essay.txt",
+    "challenger": "0x80519c53f10d731e4ff83a7d9acd69cf98da6258",
+    "reason": "The two pages discuss completely different subjects (rainwater harvesting vs. bridge maintenance) and share no text, structure, or passages.",
+    "quote": "",
+    "judged_at": "2026-09-21T20:36:43+00:00"
+  },
+  "unreadable": {
+    "id": "2",
+    "author": "0x80519c53f10d731e4ff83a7d9acd69cf98da6258",
+    "registered_at": "2026-09-21T20:25:54+00:00",
+    "title": "The Quiet Economics of Old Bridges",
+    "work_url": "https://raw.githubusercontent.com/JspIIV/trace/master/docs/original-essay.txt",
+    "status": "REGISTERED",
+    "challenges": 1,
+    "prior_url": "https://raw.githubusercontent.com/JspIIV/trace/master/docs/no-such-page-9f2c.txt",
+    "challenger": "0x0b57877ec84d96b672cd47d8ea4424283fdb9f6c",
+    "reason": "one of the two pages could not be read",
+    "quote": "",
+    "judged_at": ""
+  },
+  "record": {
+    "padv": {
+      "exists": true,
+      "address": "0x80519c53f10d731e4ff83a7d9acd69cf98da6258",
+      "cleared": 0,
+      "flagged": 1
+    },
+    "ppub": {
+      "exists": true,
+      "address": "0x0b57877ec84d96b672cd47d8ea4424283fdb9f6c",
+      "cleared": 1,
+      "flagged": 0
+    }
+  },
+  "size": {
+    "total": 3,
+    "registered": 1,
+    "cleared": 1,
+    "flagged": 1
+  },
+  "checks": [
+    {
+      "label": "a work that copies its source is judged COPY and flagged",
+      "ok": true
+    },
+    {
+      "label": "an independent work is judged INDEPENDENT and cleared",
+      "ok": true
+    },
+    {
+      "label": "the copier's record gains a flagged",
+      "ok": true
+    },
+    {
+      "label": "the cleared author's record gains a cleared",
+      "ok": true
+    },
+    {
+      "label": "a challenge whose earlier page cannot be read is UNCLEAR, the work stays registered",
+      "ok": true
+    },
+    {
+      "label": "the register counts one cleared and one flagged",
+      "ok": true
+    }
+  ],
+  "transcript": [
+    "Trace, proven on GenLayer Asimov",
+    "  contract 0x8bdB1e4Da7dfef1018950295Cb51B406B84bab67",
+    "  padv 0x80519c53f10d731e4ff83a7d9acd69cf98da6258  ppub 0x0b57877ec84d96b672cd47d8ea4424283fdb9f6c",
+    "",
+    "padv registered #0 (a work copied from an earlier page)",
+    "ppub registered #1 (an independent work)",
+    "padv registered #2 (to be challenged against an unreadable source)",
+    "",
+    "challenging #0 against the earlier essay...",
+    "  copy: not judged after poll, retrying",
+    "  copy: FLAGGED (30s)",
+    "  status FLAGGED | The text, structure, and nearly all wording are identical, with only minor synonyms substituted (e.g., 'aging' for 'old', 'difficult' for 'hard').",
+    "challenging #1 against the unrelated essay...",
+    "  independent: CLEARED (45s)",
+    "  status CLEARED | The two pages discuss completely different subjects (rainwater harvesting vs. bridge maintenance) and share no text, structure, or passages.",
+    "",
+    "challenging #2 against an unreadable page...",
+    "  #2 status: REGISTERED (challenges: 1)",
+    "",
+    "record(padv) = {\"exists\":true,\"address\":\"0x80519c53f10d731e4ff83a7d9acd69cf98da6258\",\"cleared\":0,\"flagged\":1} ; record(ppub) = {\"exists\":true,\"address\":\"0x0b57877ec84d96b672cd47d8ea4424283fdb9f6c\",\"cleared\":1,\"flagged\":0}",
+    "register: {\"total\":3,\"registered\":1,\"cleared\":1,\"flagged\":1}",
+    "",
+    "  ok   a work that copies its source is judged COPY and flagged",
+    "  ok   an independent work is judged INDEPENDENT and cleared",
+    "  ok   the copier's record gains a flagged",
+    "  ok   the cleared author's record gains a cleared",
+    "  ok   a challenge whose earlier page cannot be read is UNCLEAR, the work stays registered",
+    "  ok   the register counts one cleared and one flagged",
+    "",
+    "6 checks. The two pages judged the work, and the record remembered."
+  ]
+}
