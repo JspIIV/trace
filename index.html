@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Trace — originality, answerable to a challenge</title>
+<title>Trace — a work flagged as a copy, on dated evidence</title>
 <style>
   :root{ --bg:#080d0f; --card:#101819; --line:#20302f; --ink:#eaf5f3; --dim:#9bb6b2; --faint:#688079;
-    --accent:#2dd4bf; --grn:#4ade80; --red:#ff6b6b; --amber:#f5b301; }
+    --accent:#2dd4bf; --red:#ff6b6b; --amber:#f5b301; }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 ui-sans-serif,system-ui,-apple-system,sans-serif}
   a{color:var(--accent)}
@@ -18,7 +18,7 @@
   button.primary{background:var(--accent);color:#04140f;border-color:transparent;font-weight:700}
   button:disabled{opacity:.5;cursor:default}
   h1{font-size:27px;margin:26px 0 6px;letter-spacing:-.3px}
-  .lead{color:var(--dim);max-width:710px}
+  .lead{color:var(--dim);max-width:720px}
   section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:16px 0}
   label{display:block;font:12px ui-monospace,monospace;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin:12px 0 5px}
   input{width:100%;background:#0a1211;border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:10px 11px;font:inherit}
@@ -31,7 +31,7 @@
   .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .head{font-weight:700;font-size:17px}
   .badge{display:inline-block;font:12px ui-monospace,monospace;font-weight:700;padding:3px 9px;border-radius:999px}
-  .b-registered{background:#10262a;color:var(--accent)} .b-cleared{background:#0f2c1c;color:var(--grn)} .b-flagged{background:#331319;color:var(--red)}
+  .b-registered{background:#10262a;color:var(--accent)} .b-flagged{background:#331319;color:var(--red)}
   .meta{color:var(--faint);font-size:12px;font-family:ui-monospace,monospace;margin-top:6px;word-break:break-all}
   .rec{color:var(--dim)}
   .why{color:var(--dim);font-size:13px;margin-top:8px;border-left:2px solid var(--line);padding-left:10px}
@@ -44,19 +44,21 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="brand">Trace<i>.</i> originality, answerable</div>
+    <div class="brand">Trace<i>.</i> copies flagged, on evidence</div>
     <div style="display:flex;gap:10px;align-items:center">
       <span class="net">GenLayer Asimov</span>
       <button id="connect">Connect wallet</button>
     </div>
   </header>
+  <div id="wstatus" class="muted" style="margin-top:10px"></div>
 
-  <h1>Register a work as your own, and let a challenge check it against an earlier source.</h1>
-  <p class="lead">Claiming a page as your original is cheap and proves nothing. On Trace the claim is answerable:
-    anyone can challenge it by naming an earlier public page it is said to be taken from, and the contract fetches
-    <b>both</b> pages and a round of GenLayer validators decides whether the work is a <b>COPY</b> or
-    <b>INDEPENDENT</b>. The verdict is permanent and it accrues to the registrant, so a record of whose claims held
-    up as original builds up next to the claim.</p>
+  <h1>A work is flagged as a copy only when an earlier, dated source shows it to be one.</h1>
+  <p class="lead">Trace does not certify originality, because on the open web nobody can prove a negative about
+    themselves from pages they may control. It does the one thing evidence can settle: anyone registers a work,
+    and anyone can challenge it by naming an earlier public page it is said to be copied from. The contract fetches
+    <b>both</b> pages and a GenLayer round flags the work only if it reproduces the earlier page <b>and</b> the pages
+    show that page came first. A challenge that shows no copy — an unrelated page or an unreadable one — changes
+    nothing and leaves the work open, so a clean record can never be manufactured, only left standing.</p>
 
   <h2>Register a work</h2>
   <section>
@@ -66,7 +68,7 @@
     </div>
     <div class="actions">
       <button class="primary" id="make">Register</button>
-      <span class="muted">You are bound as the registrant. It is neither cleared nor flagged until someone challenges it.</span>
+      <span class="muted">You are bound as the registrant. It is not a certificate; it can only be flagged if shown to be a copy.</span>
     </div>
     <div class="status" id="pstatus"></div>
   </section>
@@ -86,7 +88,7 @@
 import { createClient } from "https://esm.sh/genlayer-js@1.1.8";
 import { testnetAsimov } from "https://esm.sh/genlayer-js@1.1.8/chains";
 
-const CONTRACT = "0x8bdB1e4Da7dfef1018950295Cb51B406B84bab67";
+const CONTRACT = "0x6f92198Cf810413074712d0A064469639BB002f8";
 const CHAIN_ID_HEX = "0x107d";
 const CHAIN_PARAMS = { chainId: CHAIN_ID_HEX, chainName: "GenLayer Asimov",
   nativeCurrency:{name:"GEN",symbol:"GEN",decimals:18},
@@ -116,14 +118,47 @@ function walletFriendly(p){ return { ...p, request: async payload=>{
   try{ return await p.request({method:"eth_sendTransaction",params:[tx]}); }
   catch(err){ if(err?.code!==-32602||tx.gasPrice===undefined) throw err; const t={...tx}; delete t.gasPrice;
     return p.request({method:"eth_sendTransaction",params:[t]}); } } }; }
-async function useGenLayer(){ const cur=await window.ethereum.request({method:"eth_chainId"});
+
+// Pick MetaMask specifically. When several wallet extensions are installed they fight
+// over window.ethereum and a request can silently reach the wrong one, so MetaMask
+// never opens. EIP-6963 is the modern enumeration; the providers array and the single
+// object are the fallbacks.
+const injected = [];
+try{ window.addEventListener("eip6963:announceProvider", ev=>{ if(ev?.detail?.provider) injected.push(ev.detail); });
+  window.dispatchEvent(new Event("eip6963:requestProvider")); }catch{}
+function pickProvider(){
+  const mm = injected.find(d=>/metamask/i.test(d.info?.rdns||"")||/metamask/i.test(d.info?.name||""));
+  if(mm) return mm.provider;
+  const e = window.ethereum;
+  if(!e) return null;
+  if(Array.isArray(e.providers)&&e.providers.length){ return e.providers.find(p=>p.isMetaMask) || e.providers[0]; }
+  return e;
+}
+function walletCount(){ if(injected.length) return injected.length; const e=window.ethereum; return Array.isArray(e?.providers)?e.providers.length:(e?1:0); }
+let eip1193=null;
+async function useGenLayer(){ const p=eip1193; const cur=await p.request({method:"eth_chainId"});
   if(String(cur).toLowerCase()===CHAIN_ID_HEX) return;
-  try{ await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_ID_HEX}]}); }
-  catch(err){ if(err&&(err.code===4902||err.code===-32603)){ await window.ethereum.request({method:"wallet_addEthereumChain",params:[CHAIN_PARAMS]}); return; } throw err; } }
-function client(){ return createClient({ chain: testnetAsimov, account, provider: walletFriendly(window.ethereum) }); }
-async function ensureWallet(){ if(!window.ethereum) throw new Error("No browser wallet found. Reading works without one; registering and challenging need MetaMask on GenLayer Asimov.");
-  if(!account){ const a=await window.ethereum.request({method:"eth_requestAccounts"}); account=a[0]; $("connect").textContent=short(account); } await useGenLayer(); }
-$("connect").onclick=()=>ensureWallet().then(loadBoard).catch(e=>alert(e.message||e));
+  try{ await p.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_ID_HEX}]}); }
+  catch(err){ if(err&&(err.code===4902||err.code===-32603)){ await p.request({method:"wallet_addEthereumChain",params:[CHAIN_PARAMS]}); return; } throw err; } }
+function client(){ return createClient({ chain: testnetAsimov, account, provider: walletFriendly(eip1193) }); }
+function wsay(msg){ const el=$("wstatus"); if(el) el.textContent=msg||""; }
+async function ensureWallet(){
+  eip1193 = pickProvider();
+  if(!eip1193) throw new Error("No wallet found in this browser. Reading the register needs no wallet; to register or challenge, install MetaMask and open this page in that browser (a wallet does not inject into Claude's built-in browser).");
+  if(!account){ const a=await eip1193.request({method:"eth_requestAccounts"}); account=a&&a[0]; if(!account) throw new Error("No account was shared. Open MetaMask, unlock it, and connect this site."); $("connect").textContent=short(account); }
+  await useGenLayer();
+}
+$("connect").onclick=async ()=>{
+  const n=walletCount();
+  wsay(n>1 ? "Opening MetaMask ("+n+" wallet extensions detected; if nothing appears, click the MetaMask icon in your toolbar)…"
+           : "Opening your wallet… confirm the connection in MetaMask.");
+  const hint=setTimeout(()=>wsay("Still waiting on the wallet. Click the MetaMask icon in your browser toolbar; a request may be waiting there. If you have more than one wallet extension, disable the others and reload."), 3500);
+  try{ await ensureWallet(); clearTimeout(hint); wsay("Connected "+short(account)+" on GenLayer Asimov."); await loadBoard(); }
+  catch(e){ clearTimeout(hint); const code=e&&e.code;
+    if(code===-32002) wsay("A connection request is already open. Click the MetaMask icon in your toolbar to approve it.");
+    else if(code===4001) wsay("Connection rejected in the wallet. Click Connect wallet to try again.");
+    else wsay(e?.message||String(e)); }
+};
 
 async function sendWrite(fn, args){
   const c=client();
@@ -166,25 +201,26 @@ async function challenge(id){
 
 /* ---- board ---- */
 function badge(status){
-  const cls = status==="CLEARED"?"b-cleared":status==="FLAGGED"?"b-flagged":"b-registered";
+  const cls = status==="FLAGGED"?"b-flagged":"b-registered";
   return `<span class="badge ${cls}">${esc(status)}</span>`;
 }
 async function loadBoard(){
   const size = await read("size",[]).catch(()=>null);
-  if(size) $("counts").textContent = `${size.total} works · ${size.cleared} cleared · ${size.flagged} flagged · ${size.registered} open`;
+  if(size) $("counts").textContent = `${size.total} works · ${size.flagged} flagged as copies · ${size.registered} open`;
   const data = await read("page",["0","30"]).catch(()=>null);
   const items = (data && data.items) || [];
   if(!items.length){ $("board").innerHTML='<div class="muted">No works registered yet. Register one above.</div>'; return; }
   const recs = {};
-  for(const w of items){ if(!(w.author in recs)){ try{ recs[w.author]=await read("record",[w.author]); }catch{ recs[w.author]={cleared:0,flagged:0}; } } }
+  for(const w of items){ if(!(w.author in recs)){ try{ recs[w.author]=await read("record",[w.author]); }catch{ recs[w.author]={works:0,flagged:0}; } } }
   $("board").innerHTML = items.map(w=>{
-    const r = recs[w.author]||{cleared:0,flagged:0};
+    const r = recs[w.author]||{works:0,flagged:0};
     const open = w.status==="REGISTERED";
+    const n = Number(w.challenge_count||0);
     return `<div class="card">
       <div class="row">${badge(w.status)}<span class="head">${esc(w.title)}</span></div>
       <div class="meta">work: <a href="${esc(w.work_url)}" target="_blank" rel="noopener">${esc(w.work_url)}</a></div>
-      <div class="meta">by ${esc((w.author||"").slice(0,10))}… <span class="rec">(record: ${esc(r.cleared)} cleared / ${esc(r.flagged)} flagged)</span> · #${esc(w.id)}${w.prior_url?` · challenged against <a href="${esc(w.prior_url)}" target="_blank" rel="noopener">the named source</a>`:""}</div>
-      ${w.reason?`<div class="why"><b>${esc(w.status)}</b> — ${esc(w.reason)}${w.quote?`<br><span class="muted">“${esc(w.quote)}”</span>`:""}</div>`:""}
+      <div class="meta">by ${esc((w.author||"").slice(0,10))}… <span class="rec">(record: ${esc(r.works)} works / ${esc(r.flagged)} flagged)</span> · #${esc(w.id)} · ${n} challenge${n===1?"":"s"}${w.flag_prior_url?` · flagged against <a href="${esc(w.flag_prior_url)}" target="_blank" rel="noopener">the earlier source</a>`:""}</div>
+      ${w.status==="FLAGGED"&&w.flag_reason?`<div class="why"><b>FLAGGED as a copy</b> — ${esc(w.flag_reason)}${w.flag_quote?`<br><span class="muted">“${esc(w.flag_quote)}”</span>`:""}</div>`:""}
       ${open?`<div class="chal"><input id="p-${esc(w.id)}" placeholder="Earlier source URL it is said to copy (https://…)" />
         <button id="b-${esc(w.id)}" data-id="${esc(w.id)}" class="chalbtn primary">Challenge</button></div>
         <div class="status" id="s-${esc(w.id)}"></div>`:""}

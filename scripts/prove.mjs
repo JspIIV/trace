@@ -1,10 +1,12 @@
-// Prove Trace end to end on GenLayer Asimov.
+// Prove Trace end to end on GenLayer Asimov, with the challenge flow un-gameable.
 //
 //   AT=0x... PADV=<padv pw> PPUB=<ppub pw> node scripts/prove.mjs
 //
-// padv registers a work that copies an earlier page (challenged -> COPY, flagged);
-// ppub registers an independent work (challenged -> INDEPENDENT, cleared); a
-// challenge whose earlier page cannot be read is UNCLEAR and leaves the work open.
+// padv registers a work that copies an earlier dated source, then self-challenges it
+// against an unrelated page: that INDEPENDENT verdict must NOT clear it or move
+// reputation. Anyone then challenges it against the real earlier source: only that
+// flags it. A challenge against an unreadable page is UNCLEAR and leaves the work
+// open. History is preserved across every challenge.
 import { Wallet } from 'ethers';
 import { createClient, createAccount } from 'genlayer-js';
 import { testnetAsimov } from 'genlayer-js/chains';
@@ -29,10 +31,10 @@ const ppub = await acct('ppub.json', PPUB);
 const anybody = createClient({ chain: testnetAsimov });
 
 const RAW = 'https://raw.githubusercontent.com/JspIIV/trace/master/docs/';
-const ORIGINAL = RAW + 'original-essay.txt';
+const ORIGINAL = RAW + 'original-essay.txt';       // earlier, dated 2024-01-15
+const UNRELATED = RAW + 'independent-note.txt';     // a strawman for the self-clear attempt
+const UNREADABLE = RAW + 'no-such-page-9f2c.txt';   // 404
 const COPY_WORK = { url: RAW + 'copy-derivative.txt', title: 'The Silent Economics of Aging Bridges' };
-const INDEP_WORK = { url: RAW + 'independent-note.txt', title: 'Notes on Harvesting Rainwater in a Small Garden' };
-const UNREADABLE = RAW + 'no-such-page-9f2c.txt';
 
 const out = [];
 const say = l => { console.log(l); out.push(l); };
@@ -58,73 +60,83 @@ async function registerWork(who, work) {
   for (let i = 0; i < 20; i++) { const s = await read('size'); if (s.total > n) return String(s.total - 1); await sleep(4000); }
   throw new Error('registration not made');
 }
-async function challengeUntilJudged(who, id, prior, label) {
+async function challengeUntil(who, id, prior, want, label) {
+  // want: 'FLAGGED' to wait for a flag, or 'CHALLENGE' to wait for the challenge count to rise.
+  const before = await read('get', [id]);
+  const beforeN = Number(before.challenges || 0);
   for (let attempt = 1; attempt <= 4; attempt++) {
-    let g = await read('get', [id]);
-    if (g.status === 'FLAGGED' || g.status === 'CLEARED') { say(`  ${label}: already ${g.status}`); return g; }
-    try { await write(who, 'challenge', [id, prior]); } catch (e) { say(`  ${label} challenge err ${String(e.message).slice(0, 50)}`); }
+    try { await write(who, 'challenge', [id, prior]); } catch (e) { say(`  ${label} err ${String(e.message).slice(0, 50)}`); }
     for (let i = 0; i < 36; i++) {
       await sleep(15000);
-      g = await read('get', [id]);
-      if (g.status === 'FLAGGED' || g.status === 'CLEARED') { say(`  ${label}: ${g.status} (${(i + 1) * 15}s)`); return g; }
+      const g = await read('get', [id]);
+      if (want === 'FLAGGED' && g.status === 'FLAGGED') { say(`  ${label}: FLAGGED (${(i + 1) * 15}s)`); return g; }
+      if (want === 'CHALLENGE' && Number(g.challenges || 0) > beforeN) { say(`  ${label}: recorded (${(i + 1) * 15}s)`); return g; }
     }
-    say(`  ${label}: not judged after poll, retrying`);
+    say(`  ${label}: not settled after poll, retrying`);
   }
   return await read('get', [id]);
 }
 
-say('Trace, proven on GenLayer Asimov');
+say('Trace, proven on GenLayer Asimov (challenge flow un-gameable)');
 say('  contract ' + AT);
 say('  padv ' + padv.addr + '  ppub ' + ppub.addr);
 say('');
 
 const id0 = await registerWork(padv, COPY_WORK);
-say('padv registered #' + id0 + ' (a work copied from an earlier page)');
-const id1 = await registerWork(ppub, INDEP_WORK);
-say('ppub registered #' + id1 + ' (an independent work)');
-const id2 = await registerWork(padv, { url: ORIGINAL, title: 'The Quiet Economics of Old Bridges' });
-say('padv registered #' + id2 + ' (to be challenged against an unreadable source)');
+say('padv registered #' + id0 + ' (a work copied from an earlier dated source)');
+const rec0 = await read('record', [padv.addr]);
+say('  padv record after register: ' + JSON.stringify(rec0));
 say('');
 
-say('challenging #' + id0 + ' against the earlier essay...');
-const r0 = await challengeUntilJudged(ppub, id0, ORIGINAL, 'copy');
-say('  status ' + r0.status + ' | ' + (r0.reason || ''));
-say('challenging #' + id1 + ' against the unrelated essay...');
-const r1 = await challengeUntilJudged(padv, id1, ORIGINAL, 'independent');
-say('  status ' + r1.status + ' | ' + (r1.reason || ''));
+say('padv self-challenges #' + id0 + ' against an unrelated page, trying to lock in a clean record...');
+const selfCh = await challengeUntil(padv, id0, UNRELATED, 'CHALLENGE', 'self-challenge');
+const afterSelf = await read('get', [id0]);
+const recAfterSelf = await read('record', [padv.addr]);
+say('  #' + id0 + ' status after self-challenge: ' + afterSelf.status + ' | last verdict ' + (afterSelf.log?.[afterSelf.log.length - 1]?.verdict || '?'));
+say('  padv record after self-challenge: ' + JSON.stringify(recAfterSelf));
 say('');
 
-say('challenging #' + id2 + ' against an unreadable page...');
-try { await write(ppub, 'challenge', [id2, UNREADABLE]); } catch (e) { say('  challenge err ' + String(e.message).slice(0, 50)); }
-let r2 = await read('get', [id2]);
-for (let i = 0; i < 20 && r2.status === 'REGISTERED' && Number(r2.challenges) === 0; i++) { await sleep(15000); r2 = await read('get', [id2]); }
-say('  #' + id2 + ' status: ' + r2.status + ' (challenges: ' + r2.challenges + ')');
+say('anyone challenges #' + id0 + ' against the real earlier source...');
+const flagged = await challengeUntil(ppub, id0, ORIGINAL, 'FLAGGED', 'real-source');
+const recFlagged = await read('record', [padv.addr]);
+say('  #' + id0 + ' status: ' + flagged.status + ' | ' + (flagged.flag_reason || ''));
+say('  padv record after real challenge: ' + JSON.stringify(recFlagged));
+const hist0 = await read('history', [id0]);
+say('  history entries: ' + hist0.log.length + ' [' + hist0.log.map(e => e.verdict).join(', ') + ']');
 say('');
 
-const recPadv = await read('record', [padv.addr]);
-const recPpub = await read('record', [ppub.addr]);
+const id1 = await registerWork(ppub, { url: UNRELATED, title: 'Notes on Harvesting Rainwater' });
+say('ppub registered #' + id1 + ' (to be challenged against an unreadable page)');
+const unreadable = await challengeUntil(ppub, id1, UNREADABLE, 'CHALLENGE', 'unreadable');
+say('  #' + id1 + ' status: ' + unreadable.status + ' | last verdict ' + (unreadable.log?.[unreadable.log.length - 1]?.verdict || '?'));
+say('');
+
 const size = await read('size');
-say('record(padv) = ' + JSON.stringify(recPadv) + ' ; record(ppub) = ' + JSON.stringify(recPpub));
 say('register: ' + JSON.stringify(size));
 
+const selfVerdict = afterSelf.log?.[afterSelf.log.length - 1]?.verdict;
 const checks = [
-  ['a work that copies its source is judged COPY and flagged', r0.status === 'FLAGGED'],
-  ['an independent work is judged INDEPENDENT and cleared', r1.status === 'CLEARED'],
-  ["the copier's record gains a flagged", recPadv.flagged >= 1],
-  ["the cleared author's record gains a cleared", recPpub.cleared >= 1],
-  ['a challenge whose earlier page cannot be read is UNCLEAR, the work stays registered', r2.status === 'REGISTERED'],
-  ['the register counts one cleared and one flagged', size.cleared === 1 && size.flagged === 1],
+  ['a self-challenge against an unrelated page does not flag the work', afterSelf.status === 'REGISTERED'],
+  ['and it does not clear it or move reputation (still 0 flagged)', recAfterSelf.flagged === 0 && recAfterSelf.works === 1],
+  ['the self-challenge is recorded but decides nothing (INDEPENDENT)', selfVerdict === 'INDEPENDENT'],
+  ['later real evidence still flags the work despite the earlier no-op', flagged.status === 'FLAGGED'],
+  ["the copier's record then gains exactly one flag", recFlagged.flagged === 1 && recFlagged.works === 1],
+  ['every challenge is preserved in history, oldest first', hist0.log.length >= 2 && hist0.log[hist0.log.length - 1].verdict === 'COPY'],
+  ['a challenge against an unreadable page is UNCLEAR and leaves the work registered',
+    unreadable.status === 'REGISTERED' && unreadable.log[unreadable.log.length - 1].verdict === 'UNCLEAR'],
+  ['the register counts one flagged work', size.flagged === 1],
 ];
 say('');
 for (const [label, ok] of checks) say((ok ? '  ok   ' : ' FAIL  ') + label);
 const failed = checks.filter(([, ok]) => !ok);
 say('');
-say(failed.length ? `${failed.length} of ${checks.length} checks failed` : `${checks.length} checks. The two pages judged the work, and the record remembered.`);
+say(failed.length ? `${failed.length} of ${checks.length} checks failed` : `${checks.length} checks. Only earlier dated evidence flags a work, and a clean record cannot be manufactured.`);
 
 fs.mkdirSync(path.join(ROOT, 'results'), { recursive: true });
 fs.writeFileSync(path.join(ROOT, 'results', 'proved.json'), JSON.stringify({
   proved_at: new Date().toISOString(), network: 'genlayer testnet asimov', contract: AT,
-  copy: r0, independent: r1, unreadable: r2, record: { padv: recPadv, ppub: recPpub }, size,
+  self_challenge: afterSelf, record_after_self: recAfterSelf, flagged, record_after_flag: recFlagged,
+  history: hist0, unreadable, size,
   checks: checks.map(([label, ok]) => ({ label, ok })), transcript: out,
 }, null, 2));
 say('Written to results/proved.json');

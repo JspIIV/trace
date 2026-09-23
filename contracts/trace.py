@@ -1,42 +1,49 @@
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
-"""Trace: register a work as your own, and let a challenge check it against an earlier source.
+"""Trace: a registry that flags a work as a copy, on dated evidence, and can never be self-cleared.
 
-Anyone can claim a public page as their original work. That claim is cheap, and on
-its own it proves nothing: the same words can be registered by whoever posts them
-first, copied or not. Trace makes the claim answerable. A challenger names an
-earlier public page the work is said to be taken from, and the contract fetches
-both pages itself and a round of GenLayer validators reads them and decides whether
-the registered work reproduces the earlier one or stands on its own.
+Claiming a public page as your own original is cheap and proves nothing: the same
+words can be registered by whoever posts them, copied or not. Trace does not try to
+certify originality, because on the open web nobody can prove a negative about
+themselves from pages they may control. It does the one thing that can be settled
+from evidence: it flags a work as a copy when an earlier source shows it to be one.
 
-The verdict is permanent and it accrues to the registrant, so a record of whose
-registrations held up as original, and whose were flagged as copies, builds up next
-to the claim. The evidence is the two pages the contract read, not either party's
-word for it.
+An author registers a work. That registration is a claim, and it stays open. Anyone
+may challenge it by naming an earlier public page the work is said to be taken from.
+The contract fetches both pages and a round of GenLayer validators decides whether
+the work reproduces the earlier page AND that the earlier page is in fact the earlier
+one, from dates or credit shown on the pages themselves. Only then is the work
+flagged. A flag is permanent and it accrues to the registrant.
+
+## What it refuses to be gamed into
+
+A challenge that does not show a copy never clears the work and never earns its
+author anything: an unrelated page and an unreadable page are treated the same, as
+no evidence, and the work stays open to later, better evidence. So an author cannot
+self-challenge against a strawman to lock in a clean record, inflate a reputation, or
+block a real challenge that comes afterwards. Originality here is simply the absence
+of a proven copy, and that absence can never be manufactured, only left standing.
 
 ## What it answers
 
-    record(address) -> cleared, flagged
+    record(address) -> works, flagged
 
-for anyone deciding how much an author's originality claim is worth: a track record
-of works that survived a challenge and works that did not, each judged from the two
-public pages, not from the author's own account of themselves.
+for anyone weighing an author's originality claim: how many of their registered works
+have been shown, from an earlier dated source, to be copies. A clean record is not a
+certificate; it is the fact that nobody has proven otherwise.
 
-## What it refuses
+## Evidence and history
 
-It never flags a work on an accusation alone: a challenge runs a round over the two
-actual pages, and only a verdict that the work reproduces the earlier source flags
-it. It never decides on silence: if either page cannot be read the verdict is
-UNCLEAR, the registration stays open, and it can be challenged again. The registrant
-is bound to the caller of register, and the challenger to the caller of challenge,
-so nobody is credited or flagged for a claim they did not make.
+Every challenge is kept, append-only, in the work's log: who raised it, whether it
+was the author challenging their own work, the page named, the verdict, and the dates
+and passage the round cited. The pages are fetched live, so the stored quote and dates
+are the round's cited evidence at the time it judged; to bind a specific version of a
+page, name an archived snapshot as the URL. History is preserved, never overwritten.
 
 ## Where it stops, plainly
 
-It judges whether one page reproduces another, not who authored either first: name
-an earlier source a challenger can point to, not a private draft. Two independent
-works on the same subject can read alike; the round is asked for reproduction, not
-mere resemblance, but a loose judgement is possible, so the record is a signal, not
-a court ruling.
+It judges whether one page reproduces an earlier one, from what the pages show. It
+does not see private drafts, and it will not flag on reproduction alone when the pages
+give no way to tell which came first: that is left unresolved rather than guessed.
 """
 
 from genlayer import *
@@ -48,7 +55,6 @@ UNCLEAR = "UNCLEAR"
 VERDICTS = (COPY, INDEPENDENT, UNCLEAR)
 
 REGISTERED = "REGISTERED"
-CLEARED = "CLEARED"
 FLAGGED = "FLAGGED"
 
 MAX_TITLE = 200
@@ -56,6 +62,8 @@ MAX_URL = 300
 MAX_PAGE = 5000
 MAX_REASON = 300
 MAX_QUOTE = 300
+MAX_DATE = 40
+MAX_LOG = 50
 
 FETCH_FAILED = "__FETCH_FAILED__"
 
@@ -94,6 +102,21 @@ def _url_ok(url: str) -> bool:
     return text.startswith("https://") or text.startswith("http://")
 
 
+def _status_after(verdict: str):
+    """Map a round verdict to the work's status and the registrant's flagged delta.
+
+    Only COPY, a work shown to reproduce an earlier dated source, ever changes
+    anything: it flags the work and adds one to the author's flagged count.
+    INDEPENDENT (not a copy of this page) and UNCLEAR (unreadable or undecidable)
+    are handled identically, as no evidence: the work stays registered and no
+    reputation moves. Kept pure so the anti-gaming rule can be tested on its own.
+    Returns (status, flagged_delta).
+    """
+    if verdict == COPY:
+        return FLAGGED, 1
+    return REGISTERED, 0
+
+
 def _field(raw: str, name: str, allowed, fallback: str) -> str:
     try:
         text = str(raw).strip()
@@ -130,11 +153,12 @@ def _fetch(url: str) -> str:
 
 
 def _task(title: str, work_page: str, prior_page: str) -> str:
-    return f"""Someone registered the work on PAGE A as their own original. A challenger says it
-was taken from the earlier PAGE B. Read both pages and decide whether PAGE A
-reproduces PAGE B.
+    return f"""PAGE A is a work its author registered as their own original. A challenger says PAGE
+A was copied from the earlier PAGE B. Read both pages and decide whether PAGE A is a
+copy of PAGE B, using any publication dates or credits shown ON the pages to judge
+which one came first.
 
-WHAT THE REGISTRANT TITLED PAGE A:
+WHAT THE AUTHOR TITLED PAGE A:
 {title}
 
 PAGE A, the registered work:
@@ -144,40 +168,56 @@ PAGE B, the earlier source it is said to be copied from:
 {prior_page}
 
 Decide one of:
-  {COPY} PAGE A substantially reproduces PAGE B: the same text, structure or
-    passages, allowing for small edits, so A is a copy of B rather than its own work
-  {INDEPENDENT} both pages were read and PAGE A does not reproduce PAGE B: it is its
-    own work, even if the two share a subject or a few common phrases
-  {UNCLEAR} one of the pages could not be read, or there is not enough on them to tell
+  {COPY} PAGE A substantially reproduces PAGE B (the same text, structure or passages,
+    allowing small edits) AND PAGE B is the earlier or original one: a date on the
+    pages shows B at or before A, or PAGE A itself credits B as its source. So A is the
+    copy.
+  {INDEPENDENT} PAGE A does not reproduce PAGE B, OR the pages show that PAGE A is
+    itself the earlier or original one, so A is not a copy of B even if they share text.
+  {UNCLEAR} a page could not be read, or there is not enough on the pages to tell
+    whether A reproduces B, or which of the two came first.
 
-Judge reproduction, not mere resemblance: two independent pieces on the same topic
-are {INDEPENDENT}. Do not treat an unreachable or unrelated page as proof of a copy:
-that is {UNCLEAR}, and the registration is left open rather than flagged.
+Judge reproduction, not a shared subject: two independent pieces on one topic are
+{INDEPENDENT}. Do not answer {COPY} on reproduction alone: if A clearly reproduces B
+but nothing on the pages says which came first, answer {UNCLEAR}, not {COPY}. Never
+treat an unrelated or unreachable page as proof of anything.
 
 Reply with bare JSON and nothing else:
 {{"verdict": "{COPY}" or "{INDEPENDENT}" or "{UNCLEAR}",
+  "reproduces": "YES" or "NO" or "UNCLEAR",
+  "earlier": "A" or "B" or "UNKNOWN",
+  "a_date": "the date shown on PAGE A, or empty",
+  "b_date": "the date shown on PAGE B, or empty",
   "quote": "a short passage that decided it, or empty",
-  "reason": "one sentence naming what decided it"}}"""
+  "reason": "one sentence naming what decided it, including which came first"}}"""
 
 
 class Trace(gl.Contract):
-    """Registered works, each answerable to a challenge that checks it against an earlier source."""
+    """Registered works, each flagged only when an earlier dated source shows it to be a copy."""
 
-    # str(id) -> the registration as JSON.
+    # str(id) -> the registration as JSON, including its append-only challenge log.
     items: TreeMap[str, str]
     ids: DynArray[str]
-    # address -> {"cleared": n, "flagged": n} as JSON.
+    # address -> {"works": n, "flagged": n} as JSON.
     records: TreeMap[str, str]
 
     def __init__(self) -> None:
         pass
 
+    def _bump(self, author: str, works_delta: int, flagged_delta: int) -> None:
+        rec_raw = self.records.get(author, None)
+        rec = json.loads(rec_raw) if rec_raw is not None else {"works": 0, "flagged": 0}
+        rec["works"] = int(rec.get("works", 0)) + works_delta
+        rec["flagged"] = int(rec.get("flagged", 0)) + flagged_delta
+        self.records[author] = json.dumps(rec)
+
     @gl.public.write
     def register(self, work_url: str, title: str) -> str:
         """Claim a public page as your own original work. Bound to the caller.
 
-        The claim starts REGISTERED and proves nothing on its own; it becomes
-        CLEARED or FLAGGED only if someone challenges it and a round decides.
+        The claim starts REGISTERED and proves nothing on its own. It never becomes
+        a certificate of originality; it can only be FLAGGED if a challenge shows it
+        to be a copy of an earlier dated source.
         """
         author = gl.message.sender_address.as_hex.lower()
         link = str(work_url).strip()
@@ -196,23 +236,26 @@ class Trace(gl.Contract):
             "work_url": link,
             "status": REGISTERED,
             "challenges": 0,
-            "prior_url": "",
-            "challenger": "",
-            "reason": "",
-            "quote": "",
-            "judged_at": "",
+            "flag_reason": "",
+            "flag_quote": "",
+            "flag_prior_url": "",
+            "flagged_at": "",
+            "log": [],
         }
         self.items[wid] = json.dumps(record)
         self.ids.append(wid)
+        self._bump(author, 1, 0)
         return json.dumps({"ok": True, "id": wid, "status": REGISTERED})
 
     @gl.public.write
     def challenge(self, work_id: str, prior_url: str) -> str:
         """Challenge a registration: name an earlier page it is said to be copied from. Open to anybody.
 
-        The contract fetches both the registered work and the earlier page inside
-        the round; nobody passes in the verdict. COPY flags the registration and
-        the registrant's record; INDEPENDENT clears it.
+        The contract fetches both pages inside the round; nobody passes in the verdict.
+        A COPY verdict, which the round gives only when the work reproduces the earlier
+        page and that page is shown to be the earlier one, flags the work permanently.
+        Any other verdict is recorded as no evidence and leaves the work open. Every
+        challenge, whatever its verdict, is appended to the work's history.
         """
         challenger = gl.message.sender_address.as_hex.lower()
         wid = str(work_id).strip()
@@ -223,11 +266,13 @@ class Trace(gl.Contract):
         if not _url_ok(prior):
             return json.dumps({"ok": False, "error": "give an http(s) URL for the earlier source"})
         record = json.loads(stored)
-        if record["status"] != REGISTERED:
-            return json.dumps({"ok": False, "error": "this registration is already " + record["status"].lower(),
-                               "status": record["status"]})
+        if record["status"] == FLAGGED:
+            return json.dumps({"ok": False, "error": "this work is already flagged as a copy", "status": FLAGGED})
         if prior == record["work_url"]:
             return json.dumps({"ok": False, "error": "the earlier source must be a different page from the work"})
+
+        author = record["author"]
+        is_self = challenger == author
 
         # Copy into locals before the round. Nothing inside the block reads self
         # and nothing inside it raises.
@@ -238,12 +283,14 @@ class Trace(gl.Contract):
             work_page = _fetch(work_url)
             prior_page = _fetch(prior)
             if work_page == FETCH_FAILED or prior_page == FETCH_FAILED:
-                return json.dumps({"verdict": UNCLEAR, "quote": "",
+                return json.dumps({"verdict": UNCLEAR, "reproduces": "UNCLEAR", "earlier": "UNKNOWN",
+                                   "a_date": "", "b_date": "", "quote": "",
                                    "reason": "one of the two pages could not be read"})
             try:
                 return str(gl.nondet.exec_prompt(_task(title, work_page, prior_page)))
             except Exception as error:
-                return json.dumps({"verdict": UNCLEAR, "quote": "",
+                return json.dumps({"verdict": UNCLEAR, "reproduces": "UNCLEAR", "earlier": "UNKNOWN",
+                                   "a_date": "", "b_date": "", "quote": "",
                                    "reason": _clip("the prompt failed: " + str(error), MAX_REASON)})
 
         raw = gl.eq_principle.prompt_comparative(
@@ -252,9 +299,9 @@ class Trace(gl.Contract):
                 f"Both answers must carry the same value in the field named verdict, one of "
                 f"{COPY}, {INDEPENDENT} or {UNCLEAR}. That single field decides whether a work is "
                 "flagged as a copy on its author's permanent record, so two readers differing on it "
-                "are not wording a judgement differently, they disagree about whether one page "
-                "reproduces the other. The quote and the reason are not compared, and the two "
-                "readers will not have fetched byte-identical copies of the pages."
+                "disagree about whether one page reproduces an earlier one, not about how to word a "
+                "judgement. The other fields are not compared, and the two readers will not have "
+                "fetched byte-identical copies of the pages."
             ),
         )
 
@@ -264,56 +311,82 @@ class Trace(gl.Contract):
                                "error": "the round produced no verdict this contract recognises",
                                "round_said": _clip(str(raw), 400)})
 
+        reason = _text_field(raw, "reason", MAX_REASON)
+        quote = _text_field(raw, "quote", MAX_QUOTE)
+        entry = {
+            "n": int(record.get("challenges", 0)) + 1,
+            "at": _now_iso(),
+            "challenger": challenger,
+            "self": is_self,
+            "prior_url": prior,
+            "verdict": verdict,
+            "earlier": _field(raw, "earlier", ("A", "B", "UNKNOWN"), "UNKNOWN"),
+            "a_date": _text_field(raw, "a_date", MAX_DATE),
+            "b_date": _text_field(raw, "b_date", MAX_DATE),
+            "quote": quote,
+            "reason": reason,
+        }
+        log = list(record.get("log", []))
+        log.append(entry)
+        if len(log) > MAX_LOG:
+            log = log[-MAX_LOG:]
+        record["log"] = log
         record["challenges"] = int(record.get("challenges", 0)) + 1
-        record["reason"] = _text_field(raw, "reason", MAX_REASON)
-        record["quote"] = _text_field(raw, "quote", MAX_QUOTE)
-        record["prior_url"] = prior
-        record["challenger"] = challenger
-        if verdict == COPY or verdict == INDEPENDENT:
-            record["status"] = FLAGGED if verdict == COPY else CLEARED
-            record["judged_at"] = _now_iso()
-            author = record["author"]
-            rec_raw = self.records.get(author, None)
-            rec = json.loads(rec_raw) if rec_raw is not None else {"cleared": 0, "flagged": 0}
-            if verdict == COPY:
-                rec["flagged"] = int(rec.get("flagged", 0)) + 1
-            else:
-                rec["cleared"] = int(rec.get("cleared", 0)) + 1
-            self.records[author] = json.dumps(rec)
-        # UNCLEAR leaves the registration REGISTERED, to be challenged again later.
+
+        status, flagged_delta = _status_after(verdict)
+        if status == FLAGGED:
+            record["status"] = FLAGGED
+            record["flagged_at"] = _now_iso()
+            record["flag_reason"] = reason
+            record["flag_quote"] = quote
+            record["flag_prior_url"] = prior
+            self._bump(author, 0, flagged_delta)
+        # INDEPENDENT and UNCLEAR: no status change, no reputation change; the work
+        # stays open to later evidence, and the challenge is preserved in the log.
         self.items[wid] = json.dumps(record)
-        return json.dumps({"ok": True, "id": wid, "verdict": verdict,
-                           "status": record["status"], "reason": record["reason"]})
+        return json.dumps({"ok": True, "id": wid, "verdict": verdict, "self": is_self,
+                           "status": record["status"], "reason": reason})
 
     # ------------------------------------------------------------------ reads
 
     @gl.public.view
     def record(self, address: str) -> str:
-        """An author's permanent originality record: registrations cleared and flagged."""
+        """An author's originality record: works registered, and works flagged as copies."""
         who = _addr(address)
         if not who:
-            return json.dumps({"exists": False, "cleared": 0, "flagged": 0})
+            return json.dumps({"exists": False, "works": 0, "flagged": 0})
         rec_raw = self.records.get(who, None)
         if rec_raw is None:
-            return json.dumps({"exists": False, "address": who, "cleared": 0, "flagged": 0})
+            return json.dumps({"exists": False, "address": who, "works": 0, "flagged": 0})
         rec = json.loads(rec_raw)
         return json.dumps({"exists": True, "address": who,
-                           "cleared": int(rec.get("cleared", 0)), "flagged": int(rec.get("flagged", 0))})
+                           "works": int(rec.get("works", 0)), "flagged": int(rec.get("flagged", 0))})
 
     @gl.public.view
     def status(self, work_id: str) -> str:
-        """A registration's current standing and the reason it was judged."""
+        """A registration's current standing and how many times it has been challenged."""
         wid = str(work_id).strip()
         stored = self.items.get(wid, None)
         if stored is None:
             return json.dumps({"exists": False})
         record = json.loads(stored)
         return json.dumps({"exists": True, "id": wid, "status": record["status"],
-                           "challenges": record["challenges"], "reason": record["reason"]})
+                           "challenges": record["challenges"], "reason": record.get("flag_reason", "")})
+
+    @gl.public.view
+    def history(self, work_id: str) -> str:
+        """The full, append-only log of every challenge raised against a work."""
+        wid = str(work_id).strip()
+        stored = self.items.get(wid, None)
+        if stored is None:
+            return json.dumps({"exists": False})
+        record = json.loads(stored)
+        return json.dumps({"exists": True, "id": wid, "status": record["status"],
+                           "challenges": record["challenges"], "log": record.get("log", [])})
 
     @gl.public.view
     def get(self, work_id: str) -> str:
-        """The whole registration, including the deciding quote and reason once judged."""
+        """The whole registration, including its challenge history."""
         wid = str(work_id).strip()
         stored = self.items.get(wid, None)
         if stored is None:
@@ -322,21 +395,17 @@ class Trace(gl.Contract):
 
     @gl.public.view
     def size(self) -> str:
-        """How many registrations are open, cleared and flagged."""
+        """How many registrations are open and how many are flagged as copies."""
         registered = 0
-        cleared = 0
         flagged = 0
         for position in range(len(self.ids)):
             record = json.loads(self.items[self.ids[position]])
             state = record["status"]
             if state == REGISTERED:
                 registered += 1
-            elif state == CLEARED:
-                cleared += 1
             elif state == FLAGGED:
                 flagged += 1
-        return json.dumps({"total": len(self.ids), "registered": registered,
-                           "cleared": cleared, "flagged": flagged})
+        return json.dumps({"total": len(self.ids), "registered": registered, "flagged": flagged})
 
     @gl.public.view
     def page(self, start: str, count: str) -> str:
@@ -354,7 +423,10 @@ class Trace(gl.Contract):
         seen = 0
         position = total - 1 - begin
         while position >= 0 and seen < want:
-            out.append(json.loads(self.items[self.ids[position]]))
+            record = json.loads(self.items[self.ids[position]])
+            record["challenge_count"] = len(record.get("log", []))
+            record.pop("log", None)
+            out.append(record)
             position -= 1
             seen += 1
         return json.dumps({"total": total, "start": begin, "count": len(out), "items": out})

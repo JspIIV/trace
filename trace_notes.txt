@@ -1,7 +1,5 @@
-Claiming a public page as your own original is cheap and proves nothing: the same words can be registered by whoever posts them, copied or not.
+Claiming a public page as your own original is cheap and proves nothing. Trace does not try to certify originality: on the open web nobody can prove that from pages they may control. It settles what evidence can: it flags a work as a copy when an earlier, dated source shows it to be one.
 
-Trace makes the claim answerable. register(work_url, title) records a work bound to the caller; it starts REGISTERED. challenge(work_id, prior_url), open to anybody, names an earlier page the work is said to be copied from. The contract fetches both pages and a GenLayer round decides COPY, INDEPENDENT or UNCLEAR. COPY flags the registration, INDEPENDENT clears it, and the verdict accrues to the registrant, so record(address) builds an originality track record judged from two public pages.
+register(work_url, title) records a work bound to the caller, starting REGISTERED. challenge(work_id, prior_url) names an earlier page, open to anybody. The contract fetches both and a GenLayer round returns COPY only when the work reproduces the earlier page AND the pages date that page first; the work is then FLAGGED and its author gains a flag. INDEPENDENT and UNCLEAR count the same, as no evidence: nothing clears, no reputation moves, the work stays open. So no strawman self-challenge can lock in a clean record or block later evidence.
 
-It never flags on an accusation alone: a challenge runs a round over both pages. If either page cannot be read the verdict is UNCLEAR and the work stays open.
-
-Proven on Asimov with a live register: a work reproducing an earlier essay is COPY and flagged; an independent one is INDEPENDENT and cleared; a challenge against an unreadable page stays UNCLEAR.
+Every challenge is kept append-only in the work's history. record(address) is works registered and flagged. Proven on Asimov; tested in tests/trace_rules.py.
