@@ -1,0 +1,225 @@
+{
+  "proved_at": "2026-09-23T15:04:01.304Z",
+  "network": "genlayer testnet asimov",
+  "contract": "0x6f92198Cf810413074712d0A064469639BB002f8",
+  "self_challenge": {
+    "id": "3",
+    "author": "0x80519c53f10d731e4ff83a7d9acd69cf98da6258",
+    "registered_at": "2026-09-23T14:19:16+00:00",
+    "title": "The Silent Economics of Aging Bridges",
+    "work_url": "https://raw.githubusercontent.com/JspIIV/trace/master/docs/copy-derivative.txt",
+    "status": "REGISTERED",
+    "challenges": 1,
+    "flag_reason": "",
+    "flag_quote": "",
+    "flag_prior_url": "",
+    "flagged_at": "",
+    "log": [
+      {
+        "n": 1,
+        "at": "2026-09-23T14:19:34+00:00",
+        "challenger": "0x80519c53f10d731e4ff83a7d9acd69cf98da6258",
+        "self": true,
+        "prior_url": "https://raw.githubusercontent.com/JspIIV/trace/master/docs/independent-note.txt",
+        "verdict": "INDEPENDENT",
+        "earlier": "B",
+        "a_date": "20 June 2025",
+        "b_date": "3 April 2025",
+        "quote": "",
+        "reason": "The pages discuss completely different subjects (aging bridges vs. rainwater harvesting) with no shared text, structure, or passages, so PAGE A does not reproduce PAGE B, even though PAGE B has an earlier publication date."
+      }
+    ]
+  },
+  "record_after_self": {
+    "exists": true,
+    "address": "0x80519c53f10d731e4ff83a7d9acd69cf98da6258",
+    "works": 3,
+    "flagged": 1
+  },
+  "flagged": {
+    "id": "3",
+    "author": "0x80519c53f10d731e4ff83a7d9acd69cf98da6258",
+    "registered_at": "2026-09-23T14:19:16+00:00",
+    "title": "The Silent Economics of Aging Bridges",
+    "work_url": "https://raw.githubusercontent.com/JspIIV/trace/master/docs/copy-derivative.txt",
+    "status": "FLAGGED",
+    "challenges": 2,
+    "flag_reason": "PAGE A substantially reproduces PAGE B's text and structure with only minor word substitutions, and PAGE B's publication date (January 2024) is earlier than PAGE A's date (June 2025).",
+    "flag_quote": "Every old/aging bridge is a promise made by people who are mostly gone, paid for a second time by people who never voted on it.",
+    "flag_prior_url": "https://raw.githubusercontent.com/JspIIV/trace/master/docs/original-essay.txt",
+    "flagged_at": "2026-09-23T15:01:41+00:00",
+    "log": [
+      {
+        "n": 1,
+        "at": "2026-09-23T14:19:34+00:00",
+        "challenger": "0x80519c53f10d731e4ff83a7d9acd69cf98da6258",
+        "self": true,
+        "prior_url": "https://raw.githubusercontent.com/JspIIV/trace/master/docs/independent-note.txt",
+        "verdict": "INDEPENDENT",
+        "earlier": "B",
+        "a_date": "20 June 2025",
+        "b_date": "3 April 2025",
+        "quote": "",
+        "reason": "The pages discuss completely different subjects (aging bridges vs. rainwater harvesting) with no shared text, structure, or passages, so PAGE A does not reproduce PAGE B, even though PAGE B has an earlier publication date."
+      },
+      {
+        "n": 2,
+        "at": "2026-09-23T15:01:41+00:00",
+        "challenger": "0x0b57877ec84d96b672cd47d8ea4424283fdb9f6c",
+        "self": false,
+        "prior_url": "https://raw.githubusercontent.com/JspIIV/trace/master/docs/original-essay.txt",
+        "verdict": "COPY",
+        "earlier": "B",
+        "a_date": "20 June 2025",
+        "b_date": "15 January 2024",
+        "quote": "Every old/aging bridge is a promise made by people who are mostly gone, paid for a second time by people who never voted on it.",
+        "reason": "PAGE A substantially reproduces PAGE B's text and structure with only minor word substitutions, and PAGE B's publication date (January 2024) is earlier than PAGE A's date (June 2025)."
+      }
+    ]
+  },
+  "record_after_flag": {
+    "exists": true,
+    "address": "0x80519c53f10d731e4ff83a7d9acd69cf98da6258",
+    "works": 3,
+    "flagged": 2
+  },
+  "history": {
+    "exists": true,
+    "id": "3",
+    "status": "FLAGGED",
+    "challenges": 2,
+    "log": [
+      {
+        "n": 1,
+        "at": "2026-09-23T14:19:34+00:00",
+        "challenger": "0x80519c53f10d731e4ff83a7d9acd69cf98da6258",
+        "self": true,
+        "prior_url": "https://raw.githubusercontent.com/JspIIV/trace/master/docs/independent-note.txt",
+        "verdict": "INDEPENDENT",
+        "earlier": "B",
+        "a_date": "20 June 2025",
+        "b_date": "3 April 2025",
+        "quote": "",
+        "reason": "The pages discuss completely different subjects (aging bridges vs. rainwater harvesting) with no shared text, structure, or passages, so PAGE A does not reproduce PAGE B, even though PAGE B has an earlier publication date."
+      },
+      {
+        "n": 2,
+        "at": "2026-09-23T15:01:41+00:00",
+        "challenger": "0x0b57877ec84d96b672cd47d8ea4424283fdb9f6c",
+        "self": false,
+        "prior_url": "https://raw.githubusercontent.com/JspIIV/trace/master/docs/original-essay.txt",
+        "verdict": "COPY",
+        "earlier": "B",
+        "a_date": "20 June 2025",
+        "b_date": "15 January 2024",
+        "quote": "Every old/aging bridge is a promise made by people who are mostly gone, paid for a second time by people who never voted on it.",
+        "reason": "PAGE A substantially reproduces PAGE B's text and structure with only minor word substitutions, and PAGE B's publication date (January 2024) is earlier than PAGE A's date (June 2025)."
+      }
+    ]
+  },
+  "unreadable": {
+    "id": "4",
+    "author": "0x0b57877ec84d96b672cd47d8ea4424283fdb9f6c",
+    "registered_at": "2026-09-23T15:03:06+00:00",
+    "title": "Notes on Harvesting Rainwater",
+    "work_url": "https://raw.githubusercontent.com/JspIIV/trace/master/docs/independent-note.txt",
+    "status": "REGISTERED",
+    "challenges": 1,
+    "flag_reason": "",
+    "flag_quote": "",
+    "flag_prior_url": "",
+    "flagged_at": "",
+    "log": [
+      {
+        "n": 1,
+        "at": "2026-09-23T15:03:25+00:00",
+        "challenger": "0x0b57877ec84d96b672cd47d8ea4424283fdb9f6c",
+        "self": true,
+        "prior_url": "https://raw.githubusercontent.com/JspIIV/trace/master/docs/no-such-page-9f2c.txt",
+        "verdict": "UNCLEAR",
+        "earlier": "UNKNOWN",
+        "a_date": "",
+        "b_date": "",
+        "quote": "",
+        "reason": "one of the two pages could not be read"
+      }
+    ]
+  },
+  "size": {
+    "total": 5,
+    "registered": 3,
+    "flagged": 2
+  },
+  "checks": [
+    {
+      "label": "a self-challenge against an unrelated page does not flag the work",
+      "ok": true
+    },
+    {
+      "label": "and it moves no reputation (flagged unchanged by the self-challenge)",
+      "ok": true
+    },
+    {
+      "label": "the self-challenge is recorded but decides nothing (INDEPENDENT)",
+      "ok": true
+    },
+    {
+      "label": "later real evidence still flags the work despite the earlier no-op",
+      "ok": true
+    },
+    {
+      "label": "the copier's record then gains exactly one flag",
+      "ok": true
+    },
+    {
+      "label": "every challenge is preserved in history, oldest first",
+      "ok": true
+    },
+    {
+      "label": "a challenge against an unreadable page is UNCLEAR and leaves the work registered",
+      "ok": true
+    },
+    {
+      "label": "this run flagged exactly one more work in the register",
+      "ok": true
+    }
+  ],
+  "transcript": [
+    "Trace, proven on GenLayer Asimov (challenge flow un-gameable)",
+    "  contract 0x6f92198Cf810413074712d0A064469639BB002f8",
+    "  padv 0x80519c53f10d731e4ff83a7d9acd69cf98da6258  ppub 0x0b57877ec84d96b672cd47d8ea4424283fdb9f6c",
+    "",
+    "padv registered #3 (a work copied from an earlier dated source)",
+    "  padv record after register: {\"exists\":true,\"address\":\"0x80519c53f10d731e4ff83a7d9acd69cf98da6258\",\"works\":3,\"flagged\":1}",
+    "",
+    "padv self-challenges #3 against an unrelated page, trying to lock in a clean record...",
+    "  self-challenge: recorded (15s)",
+    "  #3 status after self-challenge: REGISTERED | last verdict INDEPENDENT",
+    "  padv record after self-challenge: {\"exists\":true,\"address\":\"0x80519c53f10d731e4ff83a7d9acd69cf98da6258\",\"works\":3,\"flagged\":1}",
+    "",
+    "anyone challenges #3 against the real earlier source...",
+    "  real-source: not settled after poll, retrying",
+    "  real-source: FLAGGED (60s)",
+    "  #3 status: FLAGGED | PAGE A substantially reproduces PAGE B's text and structure with only minor word substitutions, and PAGE B's publication date (January 2024) is earlier than PAGE A's date (June 2025).",
+    "  padv record after real challenge: {\"exists\":true,\"address\":\"0x80519c53f10d731e4ff83a7d9acd69cf98da6258\",\"works\":3,\"flagged\":2}",
+    "  history entries: 2 [INDEPENDENT, COPY]",
+    "",
+    "  (register transient, wait 8s)",
+    "ppub registered #4 (to be challenged against an unreadable page)",
+    "  unreadable: recorded (30s)",
+    "  #4 status: REGISTERED | last verdict UNCLEAR",
+    "",
+    "register: {\"total\":5,\"registered\":3,\"flagged\":2}",
+    "",
+    "  ok   a self-challenge against an unrelated page does not flag the work",
+    "  ok   and it moves no reputation (flagged unchanged by the self-challenge)",
+    "  ok   the self-challenge is recorded but decides nothing (INDEPENDENT)",
+    "  ok   later real evidence still flags the work despite the earlier no-op",
+    "  ok   the copier's record then gains exactly one flag",
+    "  ok   every challenge is preserved in history, oldest first",
+    "  ok   a challenge against an unreadable page is UNCLEAR and leaves the work registered",
+    "  ok   this run flagged exactly one more work in the register",
+    "",
+    "8 checks. Only earlier dated evidence flags a work, and a clean record cannot be manufactured."
+  ]
+}
