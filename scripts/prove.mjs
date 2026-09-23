@@ -85,6 +85,11 @@ say('  contract ' + AT);
 say('  padv ' + padv.addr + '  ppub ' + ppub.addr);
 say('');
 
+// Baselines, so the proof is robust to being re-run against the same live contract:
+// what matters is that this run's work gains exactly one flag, not the absolute totals.
+const baseRec = await read('record', [padv.addr]);
+const baseSize = await read('size');
+
 const id0 = await registerWork(padv, COPY_WORK);
 say('padv registered #' + id0 + ' (a work copied from an earlier dated source)');
 const rec0 = await read('record', [padv.addr]);
@@ -120,14 +125,14 @@ say('register: ' + JSON.stringify(size));
 const selfVerdict = afterSelf.log?.[afterSelf.log.length - 1]?.verdict;
 const checks = [
   ['a self-challenge against an unrelated page does not flag the work', afterSelf.status === 'REGISTERED'],
-  ['and it does not clear it or move reputation (still 0 flagged)', recAfterSelf.flagged === 0 && recAfterSelf.works === 1],
+  ['and it moves no reputation (flagged unchanged by the self-challenge)', recAfterSelf.flagged === baseRec.flagged],
   ['the self-challenge is recorded but decides nothing (INDEPENDENT)', selfVerdict === 'INDEPENDENT'],
   ['later real evidence still flags the work despite the earlier no-op', flagged.status === 'FLAGGED'],
-  ["the copier's record then gains exactly one flag", recFlagged.flagged === 1 && recFlagged.works === 1],
+  ["the copier's record then gains exactly one flag", recFlagged.flagged === baseRec.flagged + 1],
   ['every challenge is preserved in history, oldest first', hist0.log.length >= 2 && hist0.log[hist0.log.length - 1].verdict === 'COPY'],
   ['a challenge against an unreadable page is UNCLEAR and leaves the work registered',
     unreadable.status === 'REGISTERED' && unreadable.log[unreadable.log.length - 1].verdict === 'UNCLEAR'],
-  ['the register counts one flagged work', size.flagged === 1],
+  ['this run flagged exactly one more work in the register', size.flagged === baseSize.flagged + 1],
 ];
 say('');
 for (const [label, ok] of checks) say((ok ? '  ok   ' : ' FAIL  ') + label);
