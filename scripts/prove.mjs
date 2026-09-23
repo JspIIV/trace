@@ -56,8 +56,11 @@ async function write(who, fn, args) {
 }
 async function registerWork(who, work) {
   const n = (await read('size')).total;
-  await write(who, 'register', [work.url, work.title]);
-  for (let i = 0; i < 20; i++) { const s = await read('size'); if (s.total > n) return String(s.total - 1); await sleep(4000); }
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    await write(who, 'register', [work.url, work.title]);
+    for (let i = 0; i < 30; i++) { const s = await read('size'); if (s.total > n) return String(s.total - 1); await sleep(5000); }
+    say('  (register #' + attempt + ' not seen after 150s, retrying)');
+  }
   throw new Error('registration not made');
 }
 async function challengeUntil(who, id, prior, want, label) {
